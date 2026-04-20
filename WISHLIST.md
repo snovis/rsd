@@ -82,3 +82,12 @@ Ported from GSD: planner, executor, verifier, researcher. Each invoked per-loop 
 
 ### Dogfood rsd on rsd itself
 Initialize `.rsd/` in this repo. Use rsd to track rsd's own development. Every slice of rsd development = one handoff. Every substantial design conversation = one doc. This wishlist moves into `.rsd/threads.md` once that level exists.
+
+### Tune nudge thresholds based on real use
+First real-world validation (gnarly upstream merge, step 2): Claude auto-handed-off at 58% context. Post-/clear + pickup dropped context to 17% — a 41-point compression. User felt 58% was "kind of high." Consider:
+- Strengthen the 45% nudge message ("good time" → "consider now")
+- Add more color urgency on statusline `H:Xm` once context > 50
+- Track compression ratio across handoffs as a health metric
+
+### Capture real-world validations + regressions
+A running log of "what actually happened in production." Each entry: date, situation, outcome, what it taught us. Informs whether thresholds, templates, and behaviors need tuning. Could live at `VALIDATION.md` or inside `.rsd/` once dogfooding starts.
