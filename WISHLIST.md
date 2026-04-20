@@ -83,15 +83,15 @@ Ported from GSD: planner, executor, verifier, researcher. Each invoked per-loop 
 ### Dogfood rsd on rsd itself
 Initialize `.rsd/` in this repo. Use rsd to track rsd's own development. Every slice of rsd development = one handoff. Every substantial design conversation = one doc. This wishlist moves into `.rsd/threads.md` once that level exists.
 
-### Tune nudge thresholds based on real use
-First real-world validation (gnarly upstream merge, step 2): Claude auto-handed-off at 58% context. Post-/clear + pickup dropped context to 17% — a 41-point compression. The 58% was a deliberate early test; the user would have waited until ~70% in normal use.
+### Validation log + threshold observations
 
-Implication: the 45% nudge may be over-eager. Worth watching whether the nudges feel like noise in practice. Possible tuning:
-- Raise the first nudge from 45% to something like 55-60%
-- Keep 75% as the "strongly recommend" threshold
-- Track compression ratio across handoffs as a health metric (is 30-40pt the norm?)
+**Run 1** — gnarly upstream merge, step 2. Claude auto-handed-off at 58% (deliberate early test; user would have waited to 70% in normal use). Post-/clear + pickup: 58% → 17%. Compression: 41pt.
 
-Single data point — don't change thresholds yet. Accumulate a few more observations first.
+**Run 2** — same merge, before step 4. Claude announced: "Context is at 46% — good time to hand off before Step 4. Let me do that now." Nudge fired at 46% (just past 45% threshold), Claude chose a natural break (between steps), announced intent before acting.
+
+**Refined model for the nudge:** informational, not urgent. The 45% threshold surfaces the option; Claude uses judgment about whether there's a sensible break. Between steps = act. Mid-step = defer. This is the right design.
+
+Don't tune thresholds yet. Keep watching. Track compression ratio across handoffs as a health metric (is 30-40pt the norm?).
 
 ### Capture real-world validations + regressions
 A running log of "what actually happened in production." Each entry: date, situation, outcome, what it taught us. Informs whether thresholds, templates, and behaviors need tuning. Could live at `VALIDATION.md` or inside `.rsd/` once dogfooding starts.
