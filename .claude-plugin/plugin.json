@@ -1,0 +1,12 @@
+{
+  "name": "rsd",
+  "version": "0.1.0",
+  "description": "Cold-start-ready handoffs for Claude Code sessions. Call /rsd:handoff anytime, /clear, then /rsd:pickup to resume.",
+  "author": {
+    "name": "Scott Novis",
+    "email": "scottnovis@gmail.com"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/snovis/rsd",
+  "keywords": ["handoff", "context", "session", "productivity"]
+}

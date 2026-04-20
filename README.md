@@ -25,13 +25,25 @@ cd ~/dev/rsd
 ./install.sh
 ```
 
-The installer symlinks this folder to `~/.claude/plugins/rsd/`, installs the statusline to `~/.claude/hooks/rsd-statusline.js`, and patches `~/.claude/settings.json` to register it. Any existing `statusLine` entry is preserved under `statusLine_backup`.
+The installer handles the statusline automatically: it symlinks `hooks/statusline.js` to `~/.claude/hooks/rsd-statusline.js` and patches `~/.claude/settings.json` to register it. Any existing `statusLine` entry is preserved under `statusLine_backup`.
 
-Restart Claude Code, then in any git project:
+**Loading the plugin (commands + hooks):** Claude Code plugins aren't auto-discovered from arbitrary paths — you load this one with `--plugin-dir`. The installer prints the exact command, which ends up being:
+
+```bash
+# One-off test (this session only)
+claude --plugin-dir ~/dev/rsd
+
+# Persistent (add to ~/.zshrc or ~/.bashrc)
+alias claude='claude --plugin-dir ~/dev/rsd'
+```
+
+After the alias is in place, restart your shell, then in any git project:
 
 ```
 /rsd:handoff
 ```
+
+The statusline works independently of `--plugin-dir` — it's wired into `settings.json` by the installer and runs for every session. Only the commands (`/rsd:handoff`, `/rsd:pickup`) and the context-monitor hook need `--plugin-dir` to load.
 
 ## The handoff file
 
