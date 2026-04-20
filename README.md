@@ -25,25 +25,39 @@ cd ~/dev/rsd
 ./install.sh
 ```
 
-The installer handles the statusline automatically: it symlinks `hooks/statusline.js` to `~/.claude/hooks/rsd-statusline.js` and patches `~/.claude/settings.json` to register it. Any existing `statusLine` entry is preserved under `statusLine_backup`.
+That's it. Restart Claude Code; `/rsd:handoff` and friends work in any git project. The installer does two things:
 
-**Loading the plugin (commands + hooks):** Claude Code plugins aren't auto-discovered from arbitrary paths — you load this one with `--plugin-dir`. The installer prints the exact command, which ends up being:
+**Statusline:** Symlinks `hooks/statusline.js` into `~/.claude/hooks/` and patches `~/.claude/settings.json` to register it. Any existing `statusLine` entry is preserved under `statusLine_backup`.
+
+**Plugin:** Patches `~/.claude/settings.json` with `extraKnownMarketplaces.snovis` (pointing at `github.com/snovis/rsd`) and `enabledPlugins["rsd@snovis"]: true`. Claude Code clones the plugin into its cache on first launch and auto-loads it every session after.
+
+Requires `jq` on PATH (`brew install jq` on macOS; `apt-get install jq` on Debian/Ubuntu).
+
+After restart, verify with:
+
+```
+/plugin marketplace list    # should list "snovis"
+/plugin list                # should show "rsd@snovis" enabled
+/rsd:handoff                # try it
+```
+
+### Dev mode
+
+If you're hacking on rsd itself, override the cached version with the local clone:
 
 ```bash
-# One-off test (this session only)
 claude --plugin-dir ~/dev/rsd
-
-# Persistent (add to ~/.zshrc or ~/.bashrc)
-alias claude='claude --plugin-dir ~/dev/rsd'
 ```
 
-After the alias is in place, restart your shell, then in any git project:
+The local copy takes precedence over the installed version for that session. Handy for iterating on command prompts or hooks without waiting for a release.
+
+### Remote machines
+
+Same flow: clone the repo, run `./install.sh`. Updates to published rsd are pulled via:
 
 ```
-/rsd:handoff
+/plugin marketplace update snovis
 ```
-
-The statusline works independently of `--plugin-dir` — it's wired into `settings.json` by the installer and runs for every session. Only the commands (`/rsd:handoff`, `/rsd:pickup`) and the context-monitor hook need `--plugin-dir` to load.
 
 ## The handoff file
 

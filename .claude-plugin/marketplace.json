@@ -1,0 +1,19 @@
+{
+  "name": "snovis",
+  "owner": {
+    "name": "Scott Novis",
+    "email": "scottnovis@gmail.com"
+  },
+  "metadata": {
+    "description": "Scott Novis's Claude Code plugins"
+  },
+  "plugins": [
+    {
+      "name": "rsd",
+      "source": "./",
+      "description": "Cold-start-ready handoffs for Claude Code sessions. Call /rsd:handoff anytime, /clear, then /rsd:pickup to resume.",
+      "category": "productivity",
+      "tags": ["handoff", "context", "session"]
+    }
+  ]
+}
