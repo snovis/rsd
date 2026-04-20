@@ -20,7 +20,7 @@ The minimum useful set. Handoffs only. No planner, no executor, no phase concept
 ## Install
 
 ```bash
-git clone https://github.com/scottnovis/rsd.git ~/dev/rsd
+git clone https://github.com/snovis/rsd.git ~/dev/rsd
 cd ~/dev/rsd
 ./install.sh
 ```

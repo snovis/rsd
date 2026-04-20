@@ -7,7 +7,7 @@
     "email": "scottnovis@gmail.com"
   },
   "license": "MIT",
-  "repository": "https://github.com/scottnovis/rsd",
+  "repository": "https://github.com/snovis/rsd",
   "commands": [
     "./commands/handoff.md",
     "./commands/ho.md",
