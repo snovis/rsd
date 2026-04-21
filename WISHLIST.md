@@ -79,7 +79,31 @@ For containerized/CI environments, document or test `CLAUDE_CODE_PLUGIN_SEED_DIR
 ## Future layers (not Layer 0 scope)
 
 ### Layer 1: loop envelope
-The cowork → implement → verify → feedback cycle as structured commands. A loop is opened, worked, and closed, producing a small summary that rolls up into the active slice. This is the atomic unit; everything else composes from it.
+The atomic unit of structured multi-step work. A loop is opened, planned, run (iteratively), and closed, producing a small summary.
+
+**Orchestrator / specialist split.** The main session is the orchestrator — it plans, dispatches, receives reports, decides next move. Sub-agents are specialists: one executes in a fresh context (no pollution), another verifies independently (no attachment to what was built). Orchestrator context stays small because expensive tokens live in sub-agents.
+
+**Structure (from Scott's articulation after Layer 0 use):**
+
+1. **Plan** — orchestrator proposes implementation steps; user confirms or adjusts.
+2. **Run** (iterative, per task):
+   - **Spec** — orchestrator prepares prompt + context + success criteria for the next task.
+   - **Pre-dispatch checkpoint** — show the spec to the user, wait for approval. This is the "coworking not fire-and-forget" guarantee at the agent level.
+   - **Implement** — dispatch executor agent with the spec. Fresh context.
+   - **Verify** — dispatch a *different* agent to check the work. Fresh context, adversarial stance. Structurally separate from implement to prevent self-grading fabrication (the React-form lesson).
+   - **Report** — verifier returns pass/fail + notes. Orchestrator reports to user.
+   - **Decide** — user accepts, adjusts (update plan, redo task), or abandons.
+3. **Close** — all tasks accepted → summary written → loop archived.
+
+**Living plan.** When the verifier reports "this isn't quite right," the plan gets amended before the next iteration — not rewritten, just updated with the change logged. Different from GSD's surgical revision mode; ours is iterative and expected.
+
+**Loop state lives at `.rsd/loops/YYYY-MM-DD-<slug>.md`.** Contains the plan, each iteration's spec + outcome, decisions made, verifier reports. Survives handoff boundaries — a loop in progress travels in HANDOFF.md as an open thread with a pointer to its loop file.
+
+**Commands (tentative):**
+- `/rsd:loop <what we're trying to do>` — open a new loop, kick off planning
+- `/rsd:loop-step` — advance to next task in the active loop
+- `/rsd:loop-close` — finalize and archive the active loop
+- Orchestrator auto-handles pre-dispatch checkpoints, verifier runs, report generation.
 
 ### Layer 2: slice wrapper
 Orchestrates multiple loops within a single session. Carries state up when the session ends. Links loops to the slice they belong to.
