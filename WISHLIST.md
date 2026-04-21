@@ -8,12 +8,26 @@ Add entries freely; delete when built; don't sweat ordering.
 
 ## Commands
 
-### /rsd:vault
-Save an analysis (like `/rsd:doc`) but to a configured vault location *outside* the current project — e.g. an Obsidian vault synced via Syncthing or similar. First call asks "where's the vault?", remembers it in `~/.claude/rsd/config.json` (or equivalent), uses it for subsequent saves. Supports optional subfolder argument like `/rsd:vault area/ember-maintenance "upstream merge analysis"` so the doc lands in `ember-vault/area/ember-maintenance/upstream-merge-analysis-2026-04-20.md`.
+### /rsd:tovault
+Promote an existing `.rsd/docs/` entry to a configured vault location *outside* the project — e.g. an Obsidian vault synced via Syncthing. First call asks "where's the vault?", remembers it in `~/.claude/rsd/config.json` (or equivalent), uses it for subsequent promotions.
 
-Useful for cross-project knowledge accumulation where the material isn't tied to a single repo.
+Default: promotes the most recent doc in `.rsd/docs/`. With an argument: promotes the doc matching that slug or keyword. Optional subfolder arg like `/rsd:tovault area/ember-maintenance` lets the doc land in `ember-vault/area/ember-maintenance/<filename>.md`.
 
-Real-world example that motivated this: CC saved an analysis to `ember-vault/2-areas/Area - Ember Maintenance/Upstream Merge Analysis - 2026-04-20.md` where it syncs to Obsidian via Syncthing. That pattern should be one command, not manual.
+**Why two-step (`/rsd:doc` then `/rsd:tovault`) instead of saving directly to vault:**
+- Project-local preservation always happens (cheap, automatic via `/rsd:doc`)
+- Elevation to vault is deliberate — not every doc deserves a cross-project home
+- Workflow: preserve → review → promote only if valuable
+
+**Real use case that motivated this: multi-Claude reconciliation.**
+
+When working across Claude Desktop (CD) and Claude Code (CC) on the same analysis, both need access to the same source of truth. The vault is the shared medium; Obsidian + Syncthing provides cross-machine availability. Example:
+1. CC analyzes the codebase, `/rsd:doc` preserves to `.rsd/docs/`
+2. `/rsd:tovault` promotes to `ember-vault/analysis/`
+3. Syncthing pushes the vault to desktop
+4. CD reads the vault for its own reconciliation pass
+5. Differences surface in a follow-up discussion, not in silos
+
+Real-world example: CC saved an analysis to `ember-vault/2-areas/Area - Ember Maintenance/Upstream Merge Analysis - 2026-04-20.md` manually. That path should be one command.
 
 ### /rsd:docs
 List the preserved docs in the current project's `.rsd/docs/`. With a keyword argument, filter by title match. Useful for "what did we analyze last week?" without shelling out.
