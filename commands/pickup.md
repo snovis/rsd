@@ -43,12 +43,28 @@ Resume cleanly from the last handoff. Read `.rsd/HANDOFF.md`, surface the key po
    ```
    Use this to qualify the report ("written 12 minutes ago" vs "written 3 days ago").
 
-4. **Report to the user** — one compact message, roughly this shape:
+4. **Check for active walk** (belt-and-suspenders — the handoff *should* mention it, but read directly to guarantee surfacing):
+   ```bash
+   RSD_DIR=$(dirname "$HANDOFF")
+   ACTIVE_WALK=""
+   if [ -f "$RSD_DIR/walks/ACTIVE" ]; then
+     ACTIVE_WALK=$(cat "$RSD_DIR/walks/ACTIVE")
+   fi
+   ```
+   If `$ACTIVE_WALK` is set, read `$RSD_DIR/walks/$ACTIVE_WALK` with the Read tool. Note:
+   - Total items and resolved count
+   - Current item number + short title (first `— unresolved` heading)
+   - Any flags on that current item
+
+5. **Report to the user** — one compact message, roughly this shape:
 
    ```
    Picked up handoff (written <age>, context was at <pct>%).
 
    **We're working on:** <one line from "What we're working on">
+
+   **Active walk:** <slug> · <K> of <N>, on item <M>: <title>. `/rsd:next` to resume.
+   <only include this line if an active walk exists>
 
    **Last verified:** <top 2 bullets from "What just happened">
 
@@ -60,9 +76,9 @@ Resume cleanly from the last handoff. Read `.rsd/HANDOFF.md`, surface the key po
    Ready when you are.
    ```
 
-   Keep it under ~15 lines. Don't recap everything — the handoff file is still on disk if the user wants the rest.
+   Keep it under ~15 lines. Don't recap everything — the handoff file is still on disk if the user wants the rest. If the handoff's "What's open" already contained walk context (pointer + discussion summary), don't repeat it verbatim; the one-line "Active walk:" suffices and the rest is in the handoff.
 
-5. **Stop.** Do not proceed to the next work until the user tells you to.
+6. **Stop.** Do not proceed to the next work until the user tells you to.
 
 </process>
 
@@ -74,6 +90,7 @@ Resume cleanly from the last handoff. Read `.rsd/HANDOFF.md`, surface the key po
 
 <success>
 - Handoff located and read.
+- Active walk (if any) detected via `.rsd/walks/ACTIVE` and surfaced in the brief with slug, progress, and current item.
 - User briefed in a short message covering focus, last verified, open thread, and next likely action.
 - Age and decision/thread counts disclosed.
 - Session waits for user input. No autonomous continuation.
