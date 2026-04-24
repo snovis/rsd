@@ -1,6 +1,6 @@
 ---
 name: rsd:walk
-description: Start a walk — a living tasklist you step through one item at a time via /rsd:next. Captures the items from recent conversation (with confirmation) or from the argument.
+description: Start a walk — a living tasklist you step through one item at a time via /rsd:next. Captures items from recent conversation (with confirmation) or from the argument, plus a clear intent line so no item gets discussed in a vacuum.
 argument-hint: "<what this walk is about>"
 allowed-tools:
   - Read
@@ -11,14 +11,16 @@ allowed-tools:
 ---
 
 <objective>
-Capture a list of items (recommendations, todos, review comments) as a durable artifact you can walk through one at a time. Non-blocking discussion/fix/amend is the core loop; this command just opens the walk and surfaces the first item.
+Capture a list of items (recommendations, todos, review comments) as a durable artifact you can walk through one at a time. Non-blocking discussion/fix/amend is the core loop; this command opens the walk, captures the purpose, and surfaces the first item grounded in that purpose.
 </objective>
 
 <principles>
-- **Living, not frozen.** A walk is expected to change mid-flight. Items get added, dropped, or reworded as the walk surfaces things. The list captured at start is a snapshot, not a contract.
+- **Intent before mechanics.** Every walk has a one-sentence intent line and (optionally) a short approach paragraph. Items are always surfaced with that context — never raw mechanics in a vacuum. If the source items are mechanical ("loosen 5/16 lugnuts"), the intent frames them ("we're changing a tire").
+- **Living, not frozen.** A walk is expected to change mid-flight. Items get added, dropped, or reworded. The list captured at start is a snapshot, not a contract.
 - **One at a time.** The walk only ever surfaces one item as "current." The rest are visible in the file but not in your face.
-- **Explicit items.** If no recent list exists in conversation, ask the user to provide one. Don't invent items.
-- **Cheap to start.** Opening a walk is the same cost profile as /rsd:handoff or /rsd:doc — no drama, no long prep.
+- **Explicit items.** If no recent list exists in conversation, ask. Don't invent items.
+- **Sanity-check decomposition.** Before accepting the item list, flag any items that appear to require functionality living in a later item (un-independently-verifiable steps). Offer to merge/re-sequence before the walk begins.
+- **Cheap to start.** Opening a walk has the same cost profile as /rsd:handoff or /rsd:doc — no drama, no long prep.
 </principles>
 
 <process>
@@ -68,56 +70,90 @@ Capture a list of items (recommendations, todos, review comments) as a durable a
 
    Do not fabricate items. Do not use a guessed list.
 
-7. **Write `.rsd/walks/${STAMP}-${SLUG}.md`** using the shape at `@${CLAUDE_PLUGIN_ROOT}/templates/WALK.md`. Each item gets:
-   - A heading `### N. <short title> — unresolved`
-   - `**Recommendation**` — the verbatim item text (including rationale if present)
-   - `**Discussion**` — empty placeholder
-   - `**Resolution**` — empty placeholder
+7. **Capture the intent line (and optional approach).** Once items are confirmed, state what you understand the walk's purpose to be and ask the user to confirm or edit:
 
-   Header totals: N total, 0 done/rejected/deferred/modified, N unresolved.
+   > **Intent:** <your one-sentence reading of what this walk is trying to achieve>
+   >
+   > Does that capture it, or want to refine?
 
-8. **Mark the walk active.** Write the relative filename (just `${STAMP}-${SLUG}.md`, not the full path) to `.rsd/walks/ACTIVE`:
+   If the items are highly mechanical or span multiple moving parts, also propose a short approach paragraph (one short paragraph on the high-level how) and ask the user to confirm:
 
-   ```bash
-   echo "${STAMP}-${SLUG}.md" > .rsd/walks/ACTIVE
-   ```
+   > **Approach:** <one short paragraph on the high-level approach>
+   >
+   > (optional — skip if the items speak for themselves)
 
-9. **Commit and push** (single atomic commit):
+   Store the confirmed intent and approach. The intent is required; the approach is optional.
 
-   ```bash
-   git add .rsd/walks/
-   git commit -m "walk start: ${SLUG}" --no-verify
-   git push 2>/dev/null || true
-   ```
+8. **Verifiability sanity check.** Read the item list with this question in mind: *can each item be verified in isolation, or does any item depend on functionality that lives in a later item?*
 
-10. **Surface the first item and report.** Brief format:
+   Common signals of a bad split:
+   - Item N says "build feature X"; item N+1 says "add the test/validation/UI for X"
+   - Item N creates a function; item N+1 is the first place that function is actually called
+   - Items reference the same file/config key across the split
+
+   For each affected item, prepare a flag: `item N: why flagged · raised at start`.
+
+   If any flags, surface them *before* writing the walk file:
+
+   > ⚠ Verifiability check: <item N> looks like it can't be tested without <item M>.
+   > Options: merge N and M · re-sequence · proceed as-is (note stays in Flags)
+
+   Wait for user direction. Apply their choice: merge → combine items and renumber; re-sequence → reorder items; proceed → keep items as-is but log the flag in the walk file's `## Flags` section.
+
+9. **Write `.rsd/walks/${STAMP}-${SLUG}.md`** using the shape at `@${CLAUDE_PLUGIN_ROOT}/templates/WALK.md`. Fill in:
+   - Header: title, timestamp, branch, commit, totals.
+   - `## Intent` — the confirmed intent sentence.
+   - `## Approach` — the confirmed approach paragraph (or a single `—` if the user opted to skip).
+   - Each item: heading `### N. <short title> — unresolved`, verbatim recommendation text, empty Discussion, empty Resolution.
+   - `## Flags` — any verifiability flags raised in step 8.
+
+10. **Mark the walk active.**
+
+    ```bash
+    echo "${STAMP}-${SLUG}.md" > .rsd/walks/ACTIVE
+    ```
+
+11. **Commit and push** (single atomic commit):
+
+    ```bash
+    git add .rsd/walks/
+    git commit -m "walk start: ${SLUG}" --no-verify
+    git push 2>/dev/null || true
+    ```
+
+12. **Surface the first item, grounded in intent.** Brief format:
 
     ```
     Walk started: <N> items captured in `.rsd/walks/<file>`.
 
-    **On item 1:** <short title>
+    **Intent:** <intent line>
 
+    **Item 1 of N — <short title>**
     <recommendation text>
+    <if flagged: ⚠ Verifiability flag: <why>>
 
     Discuss when ready. `/rsd:next <done|reject|defer|modify> [notes]` to advance.
     ```
 
-    Keep it compact. The user can Read the walk file if they want the whole list.
+    Keep it compact. Intent line always appears. No raw mechanics without the intent framing above them.
 
 </process>
 
 <guardrails>
+- **Never surface an item without the intent line above it.** Mechanics without purpose is the anti-pattern this whole command exists to prevent.
 - **Never fabricate items.** If the conversation has no list, ask. Don't guess.
+- **Never fabricate intent.** If the walk's purpose is unclear from context, ask the user — don't invent a purpose.
 - **Never silently overwrite an active walk.** If `.rsd/walks/ACTIVE` exists and points to a walk with unresolved items, stop and report.
-- **Never ask interrogation questions about decisions.** The walk is for logging decisions as they happen, not pre-deciding them.
+- **Never skip the verifiability check on a list of 3+ items.** If the list is 1-2 items, skip. For 3+, run the check. Silent on no flags; explicit on any.
 - **Never block on push failures.** Commit stands even if push fails; note it in the one-line report.
 - **The argument is required.** Missing → ask and wait.
 </guardrails>
 
 <success>
-- `.rsd/walks/YYYY-MM-DD-HHmm-<slug>.md` exists with items captured verbatim.
+- `.rsd/walks/YYYY-MM-DD-HHmm-<slug>.md` exists with items captured verbatim, plus Intent and (optionally) Approach sections.
+- Any verifiability concerns surfaced, resolved with user input, and either fixed or flagged.
 - `.rsd/walks/ACTIVE` points to the new walk file.
 - Git commit created (`walk start: <slug>`).
 - Push attempted.
-- First item surfaced to user; session waits for discussion.
+- First item surfaced *grounded in the intent line*; session waits for discussion.
 </success>

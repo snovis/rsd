@@ -1,6 +1,6 @@
 ---
 name: rsd:next
-description: Resolve the current walk item and advance to the next one. Runs an amend pass — flags remaining items that may have been affected by the fix.
+description: Resolve the current walk item and advance to the next one. Runs an amend pass — flags remaining items that may have been affected by the fix. Always surfaces the next item grounded in the walk's intent.
 argument-hint: "<done|reject|defer|modify> [notes]"
 allowed-tools:
   - Read
@@ -11,10 +11,11 @@ allowed-tools:
 ---
 
 <objective>
-Move the active walk forward by one step: log the resolution for the current item, run an amend pass over remaining items, surface the next unresolved item. Non-blocking — just advances the cursor and keeps the conversation flowing.
+Move the active walk forward by one step: log the resolution for the current item, run an amend pass over remaining items, surface the next unresolved item *grounded in the walk's stated intent*. Non-blocking — just advances the cursor and keeps the conversation flowing.
 </objective>
 
 <principles>
+- **Intent before mechanics.** Every item surfaced to the user appears with the walk's intent line above it. No raw mechanics in a vacuum.
 - **One step at a time.** Resolve current, surface next, stop. No batch advancement.
 - **Explicit resolution.** Require one of `done | reject | defer | modify`. Don't infer from chat.
 - **Amend, don't rewrite.** After a resolution, read remaining items through the lens of what just changed. Flag anything that looks affected. Never silently edit a later item.
@@ -47,12 +48,17 @@ Move the active walk forward by one step: log the resolution for the current ite
    > Usage: `/rsd:next <done|reject|defer|modify> [notes]`
    > Current item is still unresolved.
 
-   Re-surface the current item so the user can see what they're deciding on.
+   Re-surface the current item *with the walk's intent line above it* so the user can see what they're deciding on.
 
-3. **Read the walk file.** Use the Read tool. Identify the current item — the first item whose heading ends in `— unresolved`. If every item is resolved or deferred, skip to step 7 (nothing to resolve, just report state).
+3. **Read the walk file.** Use the Read tool. Extract:
+   - The `## Intent` section (one line) — needed for every surface.
+   - The current item — first item whose heading ends in `— unresolved`.
+   - The list of remaining items.
+
+   If every item is resolved or deferred, skip to step 7 (nothing to resolve, just report state).
 
 4. **Update the current item in the walk file.** Use Edit:
-   - Change the heading from `### N. <title> — unresolved` to `### N. <title> — <status>`
+   - Change the heading from `### N. <title> — unresolved` to `### N. <title> — <status>`.
    - Fill in the `**Resolution**` block: `<status> · <notes>` (or just `<status>` if no notes).
    - Append to `**Discussion**` if there are substantive notes worth keeping alongside the terse resolution. Keep it brief — the resolution line is the record of truth.
    - Update the header totals line (increment the appropriate counter, decrement `unresolved`).
@@ -78,7 +84,7 @@ Move the active walk forward by one step: log the resolution for the current ite
    git push 2>/dev/null || true
    ```
 
-7. **Surface the next item (or wrap up).** Find the next `— unresolved` item. Two cases:
+7. **Surface the next item, grounded in intent.** Find the next `— unresolved` item. Two cases:
 
    **If there's a next item**, report:
 
@@ -86,12 +92,16 @@ Move the active walk forward by one step: log the resolution for the current ite
    Item <N> logged: <status><notes-if-any>.
    [<M> items remain · <K> flagged for re-check if any]
 
-   **On item <N+1>:** <short title>
+   **Intent:** <intent line from walk file>
 
+   **Item <N+1> of <total> — <short title>**
    <recommendation text>
+   [⚠ Flags on this item: <why>] (if flagged during prior amend pass)
 
-   [Flags on this item: <why>] (if flagged during amend pass)
+   [Approach: <approach line>] (only if approach exists and item is mechanical enough to benefit)
    ```
+
+   The intent line always appears. The approach line appears only when its context would help (rare — skip by default).
 
    **If no items remain unresolved** (everything is done/rejected/modified; deferred items may still exist):
 
@@ -104,6 +114,7 @@ Move the active walk forward by one step: log the resolution for the current ite
 </process>
 
 <guardrails>
+- **Always surface the walk's intent line when presenting an item.** No item appears in chat as raw mechanics.
 - **Never advance without an explicit status.** Missing or invalid → error and re-surface current item. Do not guess from conversation.
 - **Never auto-rewrite a later item during amend.** Flags only. The user drives edits.
 - **Never mark `done` if the fix wasn't verified.** If the user says "done" but nothing was actually run/tested, push back once: "Was this verified, or should we log it as `modify` with a note?" Still respect their call if they insist.
@@ -112,10 +123,10 @@ Move the active walk forward by one step: log the resolution for the current ite
 </guardrails>
 
 <success>
-- Current item in `.rsd/walks/<active>.md` updated with resolution and timestamp-free note.
+- Current item in `.rsd/walks/<active>.md` updated with resolution and terse note.
 - Header totals reflect the new counts.
 - Amend pass run; any affected remaining items added to `## Flags`.
 - Git commit created (`walk: item <N> <status>`).
-- Next unresolved item surfaced, or wrap-up message if none remain.
+- Next unresolved item surfaced *with the walk's intent line above it*, or wrap-up message if none remain.
 - Session waits for discussion on the next item.
 </success>
