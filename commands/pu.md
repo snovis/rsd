@@ -8,6 +8,6 @@ allowed-tools:
   - Glob
 ---
 
-Invoke `/rsd:pickup`. See `@$HOME/.claude/plugins/rsd/commands/pickup.md` for the full spec.
+Invoke `/rsd:pickup`. See `@${CLAUDE_PLUGIN_ROOT}/commands/pickup.md` for the full spec.
 
 Execute the /rsd:pickup workflow end-to-end.

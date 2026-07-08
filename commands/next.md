@@ -24,22 +24,15 @@ Move the active walk forward by one step: log the resolution for the current ite
 
 <process>
 
-1. **Find the active walk.** Walk up from cwd to find `.rsd/walks/ACTIVE`:
+1. **Find the active walk.** Run one command to locate the project root:
 
    ```bash
-   DIR=$(pwd)
-   while [ "$DIR" != "/" ]; do
-     if [ -f "$DIR/.rsd/walks/ACTIVE" ]; then
-       RSD="$DIR/.rsd"
-       ACTIVE=$(cat "$RSD/walks/ACTIVE")
-       WALK="$RSD/walks/$ACTIVE"
-       break
-     fi
-     DIR=$(dirname "$DIR")
-   done
+   git rev-parse --show-toplevel
    ```
 
-   If no active walk, stop and report:
+   If it errors (not a git repo), use the current working directory as the root. Then use the Read tool on `<root>/.rsd/walks/ACTIVE` — its contents name the active walk file, which lives at `<root>/.rsd/walks/<name>`.
+
+   If `<root>/.rsd/walks/ACTIVE` doesn't exist, stop and report:
 
    > No active walk. Start one with `/rsd:walk <description>`.
 
@@ -76,12 +69,16 @@ Move the active walk forward by one step: log the resolution for the current ite
 
    Do **not** rewrite the item itself. Just flag it. The user decides what to do when the walk reaches that item.
 
-6. **Commit:**
+6. **Commit** (each its own command; push is best-effort):
 
    ```bash
-   git add .rsd/walks/
+   git add <root>/.rsd/walks/
+   ```
+   ```bash
    git commit -m "walk: item <N> <status>" --no-verify
-   git push 2>/dev/null || true
+   ```
+   ```bash
+   git push
    ```
 
 7. **Surface the next item, grounded in intent.** Find the next `— unresolved` item. Two cases:

@@ -10,6 +10,6 @@ allowed-tools:
   - Glob
 ---
 
-Invoke `/rsd:handoff` with the same arguments. See `@$HOME/.claude/plugins/rsd/commands/handoff.md` for the full spec.
+Invoke `/rsd:handoff` with the same arguments. See `@${CLAUDE_PLUGIN_ROOT}/commands/handoff.md` for the full spec.
 
 Execute the /rsd:handoff workflow end-to-end.

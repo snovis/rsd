@@ -37,18 +37,28 @@ Capture a list of items (recommendations, todos, review comments) as a durable a
 
    Do not silently overwrite an in-flight walk.
 
-3. **Walk up from cwd to find `.rsd/`** (prefer sibling of `.git/`). Create `.rsd/walks/` if missing:
+3. **Locate the project root.** Run one command:
 
    ```bash
-   mkdir -p .rsd/walks
+   git rev-parse --show-toplevel
    ```
 
-4. **Capture metadata:**
+   Use the returned path as an absolute prefix (`<root>/.rsd/...`) below; if it errors (not a git repo), use the current working directory. Create the walks dir if missing:
 
    ```bash
-   STAMP=$(date +"%Y-%m-%d-%H%M")
-   BRANCH=$(git branch --show-current 2>/dev/null || echo "(none)")
-   COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "(none)")
+   mkdir -p <root>/.rsd/walks
+   ```
+
+4. **Capture metadata.** Run each as its own command and note the output (treat empty output or an error as `(none)`):
+
+   ```bash
+   date +"%Y-%m-%d-%H%M"
+   ```
+   ```bash
+   git branch --show-current
+   ```
+   ```bash
+   git rev-parse --short HEAD
    ```
 
 5. **Generate slug** from the argument — lowercase, hyphens, strip punctuation. Under 40 chars.
@@ -100,25 +110,25 @@ Capture a list of items (recommendations, todos, review comments) as a durable a
 
    Wait for user direction. Apply their choice: merge → combine items and renumber; re-sequence → reorder items; proceed → keep items as-is but log the flag in the walk file's `## Flags` section.
 
-9. **Write `.rsd/walks/${STAMP}-${SLUG}.md`** using the shape at `@${CLAUDE_PLUGIN_ROOT}/templates/WALK.md`. Fill in:
+9. **Write `<root>/.rsd/walks/<stamp>-<slug>.md`** (Write tool, literal stamp and slug) using the shape at `@${CLAUDE_PLUGIN_ROOT}/templates/WALK.md`. Fill in:
    - Header: title, timestamp, branch, commit, totals.
    - `## Intent` — the confirmed intent sentence.
    - `## Approach` — the confirmed approach paragraph (or a single `—` if the user opted to skip).
    - Each item: heading `### N. <short title> — unresolved`, verbatim recommendation text, empty Discussion, empty Resolution.
    - `## Flags` — any verifiability flags raised in step 8.
 
-10. **Mark the walk active.**
+10. **Mark the walk active.** Use the Write tool to write the walk filename (`<stamp>-<slug>.md`) to `<root>/.rsd/walks/ACTIVE`.
+
+11. **Commit and push** (each its own command; substitute the literal slug; push is best-effort):
 
     ```bash
-    echo "${STAMP}-${SLUG}.md" > .rsd/walks/ACTIVE
+    git add <root>/.rsd/walks/
     ```
-
-11. **Commit and push** (single atomic commit):
-
     ```bash
-    git add .rsd/walks/
-    git commit -m "walk start: ${SLUG}" --no-verify
-    git push 2>/dev/null || true
+    git commit -m "walk start: <slug>" --no-verify
+    ```
+    ```bash
+    git push
     ```
 
 12. **Surface the first item, grounded in intent.** Brief format:

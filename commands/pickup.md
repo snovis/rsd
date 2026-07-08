@@ -21,37 +21,22 @@ Resume cleanly from the last handoff. Read `.rsd/HANDOFF.md`, surface the key po
 
 <process>
 
-1. **Find the handoff.** Walk up from cwd looking for `.rsd/HANDOFF.md`:
+1. **Find the handoff.** Run one command to locate the project root:
    ```bash
-   DIR=$(pwd)
-   while [ "$DIR" != "/" ]; do
-     if [ -f "$DIR/.rsd/HANDOFF.md" ]; then
-       HANDOFF="$DIR/.rsd/HANDOFF.md"
-       break
-     fi
-     DIR=$(dirname "$DIR")
-   done
+   git rev-parse --show-toplevel
    ```
+   The handoff lives at `<root>/.rsd/HANDOFF.md` — use the returned path as an absolute prefix for every file operation below. If that command errors (not a git repo), fall back to `.rsd/HANDOFF.md` in the current working directory.
 
-   If not found, ask the user once: "I don't see a `.rsd/HANDOFF.md` in this directory or any parent. Are we in a new project, or should I look somewhere else?" Wait for a response; don't guess.
+   If no handoff file exists, ask the user once: "I don't see a `.rsd/HANDOFF.md` at the project root. Are we in a new project, or should I look somewhere else?" Wait for a response; don't guess.
 
 2. **Read the handoff with the Read tool.** The whole file; it should be short.
 
-3. **Check freshness:**
+3. **Check freshness.** Compare the handoff's `Written:` header line to the current time to qualify the report ("written 12 minutes ago" vs "written 3 days ago"). If you need the current time, run one command:
    ```bash
-   AGE_SEC=$(($(date +%s) - $(stat -f %m "$HANDOFF" 2>/dev/null || stat -c %Y "$HANDOFF")))
+   date
    ```
-   Use this to qualify the report ("written 12 minutes ago" vs "written 3 days ago").
 
-4. **Check for active walk** (belt-and-suspenders — the handoff *should* mention it, but read directly to guarantee surfacing):
-   ```bash
-   RSD_DIR=$(dirname "$HANDOFF")
-   ACTIVE_WALK=""
-   if [ -f "$RSD_DIR/walks/ACTIVE" ]; then
-     ACTIVE_WALK=$(cat "$RSD_DIR/walks/ACTIVE")
-   fi
-   ```
-   If `$ACTIVE_WALK` is set, read `$RSD_DIR/walks/$ACTIVE_WALK` with the Read tool. Note:
+4. **Check for active walk** (belt-and-suspenders — the handoff *should* mention it, but read directly to guarantee surfacing). Use the Read tool on `<root>/.rsd/walks/ACTIVE`. If that file exists, its contents name the active walk file — Read `<root>/.rsd/walks/<name>` with the Read tool. Note:
    - Total items and resolved count
    - Current item number + short title (first `— unresolved` heading)
    - Any flags on that current item

@@ -23,22 +23,15 @@ Close out the active walk cleanly. Write a short summary of what the walk accomp
 
 <process>
 
-1. **Find the active walk.** Walk up from cwd looking for `.rsd/walks/ACTIVE`:
+1. **Find the active walk.** Run one command to locate the project root:
 
    ```bash
-   DIR=$(pwd)
-   while [ "$DIR" != "/" ]; do
-     if [ -f "$DIR/.rsd/walks/ACTIVE" ]; then
-       RSD="$DIR/.rsd"
-       ACTIVE=$(cat "$RSD/walks/ACTIVE")
-       WALK="$RSD/walks/$ACTIVE"
-       break
-     fi
-     DIR=$(dirname "$DIR")
-   done
+   git rev-parse --show-toplevel
    ```
 
-   If no active walk, stop and report:
+   If it errors (not a git repo), use the current working directory as the root. Then use the Read tool on `<root>/.rsd/walks/ACTIVE` — its contents name the active walk file, which lives at `<root>/.rsd/walks/<name>`.
+
+   If `<root>/.rsd/walks/ACTIVE` doesn't exist, stop and report:
 
    > No active walk to finalize. Start one with `/rsd:walk <description>`.
 
@@ -72,15 +65,19 @@ Close out the active walk cleanly. Write a short summary of what the walk accomp
 6. **Clear the active pointer:**
 
    ```bash
-   rm "$RSD/walks/ACTIVE"
+   rm <root>/.rsd/walks/ACTIVE
    ```
 
-7. **Commit and push:**
+7. **Commit and push** (each its own command; push is best-effort):
 
    ```bash
-   git add .rsd/walks/
+   git add <root>/.rsd/walks/
+   ```
+   ```bash
    git commit -m "walk done: <slug>" --no-verify
-   git push 2>/dev/null || true
+   ```
+   ```bash
+   git push
    ```
 
 8. **Report briefly** — one or two lines:

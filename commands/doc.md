@@ -34,25 +34,35 @@ Preserve expensive analysis from the current session as a durable artifact befor
 
 2. **Identify the content.** Based on the argument, locate the matching substantive output in recent conversation context. If there's any ambiguity (multiple candidates, or you're not sure what they meant), stop and ask the user to clarify before writing anything.
 
-3. **Walk up from cwd to find `.rsd/`** (prefer sibling of `.git/`). Create `.rsd/docs/` if missing:
+3. **Locate the project root.** Run one command:
 
    ```bash
-   mkdir -p .rsd/docs
+   git rev-parse --show-toplevel
    ```
 
-4. **Capture metadata:**
+   Use the returned path as an absolute prefix (`<root>/.rsd/...`) below; if it errors (not a git repo), use the current working directory. Create the docs dir if missing:
 
    ```bash
-   STAMP=$(date +"%Y-%m-%d-%H%M")
-   BRANCH=$(git branch --show-current 2>/dev/null || echo "(none)")
-   COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "(none)")
-   CTX_FILE="${TMPDIR:-/tmp}/rsd-ctx-$CLAUDE_SESSION_ID.json"
-   [ -f "$CTX_FILE" ] && USED=$(grep -o '"used_pct":[0-9]*' "$CTX_FILE" | cut -d: -f2)
+   mkdir -p <root>/.rsd/docs
    ```
+
+4. **Capture metadata.** Run each as its own command and note the output (treat empty output or an error as `(none)`):
+
+   ```bash
+   date +"%Y-%m-%d-%H%M"
+   ```
+   ```bash
+   git branch --show-current
+   ```
+   ```bash
+   git rev-parse --short HEAD
+   ```
+
+   Note the current context-used percentage if it's known (e.g. from the statusline); otherwise leave it blank.
 
 5. **Generate slug** from the argument — lowercase, hyphens, strip punctuation. Keep under 40 chars.
 
-6. **Write the file** to `.rsd/docs/${STAMP}-${SLUG}.md`:
+6. **Write the file** (Write tool) to `<root>/.rsd/docs/<stamp>-<slug>.md`, substituting the literal stamp and slug:
 
    ```markdown
    # {{title_from_argument}}
@@ -67,12 +77,16 @@ Preserve expensive analysis from the current session as a durable artifact befor
 
    Use the Write tool. Content is verbatim — do not rephrase or summarize.
 
-7. **Commit and push:**
+7. **Commit and push** (each its own command; substitute the literal slug; push is best-effort):
 
    ```bash
-   git add .rsd/docs/
-   git commit -m "doc: ${SLUG}" --no-verify
-   git push 2>/dev/null || true
+   git add <root>/.rsd/docs/
+   ```
+   ```bash
+   git commit -m "doc: <slug>" --no-verify
+   ```
+   ```bash
+   git push
    ```
 
 8. **Report briefly** — one line:
