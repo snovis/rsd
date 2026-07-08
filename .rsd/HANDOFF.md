@@ -1,31 +1,35 @@
 # Handoff
 
-Written: 2026-05-20 21:49 · Context used: (unknown)
-Branch: main · Last commit: b61cd6a
+Written: 2026-07-07 18:21 · Context used: —%
+Branch: main · Last commit: a5a9141
 
 ## What we're working on
 
-Triaging a user report: "/rsd:walk-done does not appear to be implemented." This is the rsd plugin repo itself (the source of the very command in question), so the question is whether something is genuinely missing or whether the user saw a stale install / different symptom.
+Making rsd installable on Windows. The repo shipped only `install.sh` (bash/jq/symlink),
+which doesn't run on native Windows PowerShell. Added a PowerShell port.
 
 ## What just happened
 
-- Verified `commands/walk-done.md` exists in source (110 lines, intact, well-formed frontmatter and `<process>` body).
-- Verified `commands/wd.md` shortcut alias exists.
-- Verified plugin manifest `.claude-plugin/plugin.json` is at version 0.3.4.
-- Verified the same `walk-done.md` is byte-identical in both the installed copies: `~/.claude/plugins/cache/snovis/rsd/0.3.4/commands/walk-done.md` and `~/.claude/plugins/marketplaces/snovis/commands/walk-done.md` (diff'd, no output).
-- Confirmed `rsd:walk-done` and `rsd:wd` both appear in the current session's available-skills list — so they ARE registered with Claude Code right now.
+<!-- verified outcomes only -->
+- Created `install.ps1` — PowerShell port of `install.sh` at repo root.
+- Ran it end-to-end against a throwaway `$env:CLAUDE_CONFIG_DIR` temp dir: produced correct `settings.json` with `statusLine`, `extraKnownMarketplaces.snovis`, and `enabledPlugins["rsd@snovis"] = true`.
+- Verified re-run idempotency: added a custom `permissions` key, re-ran, confirmed it survived and rsd keys stayed correct.
+- Cleaned up the temp test dir afterward.
 
 ## What's open
 
-- Open: The user's report does not match anything observable. The command file exists everywhere it needs to and is registered in the current session.
-- Reproduce/check by: Ask the user what specifically they saw — error message? Missing from slash-command picker? Looked in README/docs and didn't see it mentioned? Different Claude Code window that hadn't picked up 0.3.4 yet (it shipped in commit b61cd6a yesterday)?
-- Next likely action: Wait for the user's clarification. Do not start "fixing" anything — there is no observed defect yet. If the user reports the picker doesn't show it, suggest restart / `/plugin marketplace update snovis`. If they saw a runtime error invoking it, get the error text first.
+- Open: `install.ps1` is written and tested locally but **not yet committed** (this handoff commit will include it). No README update for Windows install instructions yet.
+- Reproduce/check by: `powershell -ExecutionPolicy Bypass -File .\install.ps1` from repo root.
+- Next likely action: add a Windows section to README.md; optionally add a `node` PATH check to the script and/or guidance on enabling Developer Mode for live symlinks.
 
 ## Recent decisions
 
-- 2026-05-20: Did NOT modify any files. Investigation only. The current evidence contradicts the report; do not act on the report until the symptom is pinned down.
+- 2026-07-07: Use native PowerShell `ConvertFrom-Json`/`ConvertTo-Json` instead of requiring `jq` on Windows · fewer dependencies for Windows users.
+- 2026-07-07: Symlink is best-effort with copy fallback · Windows blocks `New-Item -SymbolicLink` without Developer Mode/admin; copy still works but needs re-run after `git pull` to refresh statusline.
+- 2026-07-07: Statusline command uses the concrete resolved path, not `$HOME/...` · `$HOME` doesn't expand in cmd.exe where Claude Code runs the statusline on Windows.
 
 ## Open threads (not current focus)
 
-- The skills list in the current session shows both `rsd:walk-done` and `rsd:wd` — if the user ran from a different session/window, that one may need a restart to pick up 0.3.4.
-- README.md at the repo root still says "On first launch, Claude Code will clone snovis/rsd into its plugin cache and auto-load /rsd:handoff, /rsd:ho, /rsd:pickup, /rsd:pu" (in install.sh:77). That list pre-dates walk/next/walk-done. Worth updating once the actual triage settles, but it's documentation, not the defect.
+- README.md still documents only the `curl | bash` / `install.sh` flow — no Windows instructions.
+- Could add a `node --version` preflight check to `install.ps1`.
+- Symlink copy-fallback backs up the prior copy to `.backup` on each re-run (harmless, single file, overwritten each time).
