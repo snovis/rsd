@@ -63,6 +63,8 @@ Same flow: clone the repo, run `./install.sh`. Updates to published rsd are pull
 
 Every handoff writes `.rsd/HANDOFF.md` in the project root. Archives land in `.rsd/handoffs/YYYY-MM-DD-HHmm-<slug>.md`. Both are committed and pushed (best-effort).
 
+Multi-machine safe: handoff fetches and compares with the remote **before** writing anything. If the remote is ahead (you handed off from another machine and forgot to pull), it fast-forwards first; if histories diverged, it commits your local work, rebase-integrates, and never force-pushes — a handoff-vs-handoff conflict archives the remote one and keeps the new one, any other conflict aborts cleanly and tells you. Pickup does the mirror check at session start, pulling a newer remote handoff when the tree is clean.
+
 Shape:
 
 - **What we're working on** — 1-3 sentences of honest focus.

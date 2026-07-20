@@ -29,22 +29,41 @@ Resume cleanly from the last handoff. Read `.rsd/HANDOFF.md`, surface the key po
 
    If no handoff file exists, ask the user once: "I don't see a `.rsd/HANDOFF.md` at the project root. Are we in a new project, or should I look somewhere else?" Wait for a response; don't guess.
 
-2. **Read the handoff with the Read tool.** The whole file; it should be short.
+2. **Check the remote for a newer handoff.** The user may have handed off from another machine and forgotten to pull. Run:
+   ```bash
+   git fetch
+   ```
+   If the fetch fails (no remote, offline), skip this step silently. Otherwise:
+   ```bash
+   git rev-list --left-right --count @{upstream}...HEAD
+   ```
+   Output is `<behind>	<ahead>` (errors → no upstream, skip). If behind > 0, check the working tree:
+   ```bash
+   git status --porcelain
+   ```
+   - **Clean tree:** fast-forward before reading, so the brief reflects the latest handoff:
+     ```bash
+     git pull --ff-only
+     ```
+     If it succeeds, note `pulled <behind> commits from remote` for the brief. If it fails (diverged), don't force anything — read the local handoff and flag the divergence in the brief.
+   - **Dirty tree:** don't pull over uncommitted work. Read the local handoff and lead the brief with a warning: `⚠ Remote is <behind> commits ahead (likely a handoff from another machine) but this tree has uncommitted changes — reconcile before trusting this brief.`
 
-3. **Check freshness.** Compare the handoff's `Written:` header line to the current time to qualify the report ("written 12 minutes ago" vs "written 3 days ago"). If you need the current time, run one command:
+3. **Read the handoff with the Read tool.** The whole file; it should be short.
+
+4. **Check freshness.** Compare the handoff's `Written:` header line to the current time to qualify the report ("written 12 minutes ago" vs "written 3 days ago"). If you need the current time, run one command:
    ```bash
    date
    ```
 
-4. **Check for active walk** (belt-and-suspenders — the handoff *should* mention it, but read directly to guarantee surfacing). Use the Read tool on `<root>/.rsd/walks/ACTIVE`. If that file exists, its contents name the active walk file — Read `<root>/.rsd/walks/<name>` with the Read tool. Note:
+5. **Check for active walk** (belt-and-suspenders — the handoff *should* mention it, but read directly to guarantee surfacing). Use the Read tool on `<root>/.rsd/walks/ACTIVE`. If that file exists, its contents name the active walk file — Read `<root>/.rsd/walks/<name>` with the Read tool. Note:
    - Total items and resolved count
    - Current item number + short title (first `— unresolved` heading)
    - Any flags on that current item
 
-5. **Report to the user** — one compact message, roughly this shape:
+6. **Report to the user** — one compact message, roughly this shape:
 
    ```
-   Picked up handoff (written <age>, context was at <pct>%).
+   Picked up handoff (written <age>, context was at <pct>%<, pulled N commits from remote if applicable>).
 
    **We're working on:** <one line from "What we're working on">
 
@@ -63,7 +82,7 @@ Resume cleanly from the last handoff. Read `.rsd/HANDOFF.md`, surface the key po
 
    Keep it under ~15 lines. Don't recap everything — the handoff file is still on disk if the user wants the rest. If the handoff's "What's open" already contained walk context (pointer + discussion summary), don't repeat it verbatim; the one-line "Active walk:" suffices and the rest is in the handoff.
 
-6. **Stop.** Do not proceed to the next work until the user tells you to.
+7. **Stop.** Do not proceed to the next work until the user tells you to.
 
 </process>
 
@@ -74,6 +93,7 @@ Resume cleanly from the last handoff. Read `.rsd/HANDOFF.md`, surface the key po
 </guardrails>
 
 <success>
+- Remote checked (`git fetch` + behind/ahead); a newer remote handoff pulled when safe, or the divergence/dirty-tree flagged in the brief.
 - Handoff located and read.
 - Active walk (if any) detected via `.rsd/walks/ACTIVE` and surfaced in the brief with slug, progress, and current item.
 - User briefed in a short message covering focus, last verified, open thread, and next likely action.
