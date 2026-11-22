@@ -1,8 +1,8 @@
 # Handoff
 
 Written: 2026-11-22 08:33 · Context used: (unknown)%
-Branch: main · Last commit: 6c7ed67
-Durable facts: .rsd/FACTS.md (8 ground-truth entries, 5 solved, 3 dead ends) — read it before building anything not listed under "Next likely action".
+Branch: main · Last commit: 6c7ed67 · Slug: handoff-reasons-and-facts
+Durable facts: .rsd/FACTS.md (8 ground-truth entries, 6 solved, 4 dead ends) — read it before building anything not listed under "Next likely action".
 
 ## What we're working on
 
@@ -39,7 +39,7 @@ Slice: rsd 0.4.0. Reasons and durable facts in handoffs, plus a pickup tripwire.
 
 ## Open threads (not current focus)
 
-- Handoff slug: with no argument, the spec falls back to an epoch number, so this commit reads `handoff: 1795361634`. Earlier handoffs used descriptive slugs. Consider having the agent choose a short descriptive slug.
+- Resolved in 0.4.1: slugs are now descriptive (no epoch fallback). Archives are named from the old handoff's own `Written:` + `Slug:`, and the three mislabeled archives were renamed. Scott dropped the idea of collapsing ho → clear → pu into one command ("not that big a deal").
 - README still has no Windows install section (carried from 2026-07-07).
 - `install.ps1` could add a `node --version` preflight check (carried from 2026-07-07).
 - `install.ps1` copy fallback overwrites a single `.backup` on each re-run. Harmless (carried from 2026-07-07).

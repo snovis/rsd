@@ -1,31 +1,31 @@
 # Handoff
 
-Written: 2026-04-20 · Context used: (unknown — no session bridge file)
-Branch: main · Last commit: 789fbfa
+Written: 2026-05-20 21:49 · Context used: (unknown)
+Branch: main · Last commit: b61cd6a
 
 ## What we're working on
 
-Bootstrapping the `rsd` plugin itself. This session is a fresh/empty call of `/rsd:handoff` — no code work was done before it ran. The handoff is being written primarily to seed `.rsd/HANDOFF.md` so future pickups have a starting point.
-
-Slice: (none declared)
+Triaging a user report: "/rsd:walk-done does not appear to be implemented." This is the rsd plugin repo itself (the source of the very command in question), so the question is whether something is genuinely missing or whether the user saw a stale install / different symptom.
 
 ## What just happened
 
-- Created `.rsd/` and `.rsd/handoffs/` directories (did not exist yet).
-- Verified git state: branch `main`, commit `789fbfa`, working tree clean.
-- Wrote this first handoff file.
+- Verified `commands/walk-done.md` exists in source (110 lines, intact, well-formed frontmatter and `<process>` body).
+- Verified `commands/wd.md` shortcut alias exists.
+- Verified plugin manifest `.claude-plugin/plugin.json` is at version 0.3.4.
+- Verified the same `walk-done.md` is byte-identical in both the installed copies: `~/.claude/plugins/cache/snovis/rsd/0.3.4/commands/walk-done.md` and `~/.claude/plugins/marketplaces/snovis/commands/walk-done.md` (diff'd, no output).
+- Confirmed `rsd:walk-done` and `rsd:wd` both appear in the current session's available-skills list — so they ARE registered with Claude Code right now.
 
 ## What's open
 
-- Open: nothing actively in progress. Next real work on this plugin is likely Layer 1 (slice/area/intent levels above handoff) or validating the install.sh flow end-to-end from a clean machine.
-- Reproduce/check by: `git log --oneline -5` to see the Layer 0 scaffold commits; `ls plugin/` to see the current plugin shape.
-- Next likely action: decide whether to extend the template (slice/area/intent) or to dogfood the current commands on a second machine before expanding.
+- Open: The user's report does not match anything observable. The command file exists everywhere it needs to and is registered in the current session.
+- Reproduce/check by: Ask the user what specifically they saw — error message? Missing from slash-command picker? Looked in README/docs and didn't see it mentioned? Different Claude Code window that hadn't picked up 0.3.4 yet (it shipped in commit b61cd6a yesterday)?
+- Next likely action: Wait for the user's clarification. Do not start "fixing" anything — there is no observed defect yet. If the user reports the picker doesn't show it, suggest restart / `/plugin marketplace update snovis`. If they saw a runtime error invoking it, get the error text first.
 
 ## Recent decisions
 
-- 2026-04-20: First handoff in this repo is essentially a stub — recording absence of in-flight work rather than inventing any. Handoff must be honest even when boring.
+- 2026-05-20: Did NOT modify any files. Investigation only. The current evidence contradicts the report; do not act on the report until the symptom is pinned down.
 
 ## Open threads (not current focus)
 
-- The `CLAUDE_SESSION_ID` env var was empty in this session, so the context-% bridge file couldn't be read. Worth checking whether the statusline writer actually populates that file under real sessions, or whether the lookup key needs to change.
-- No previous `.rsd/HANDOFF.md` existed to archive, so `.rsd/handoffs/` is still empty. The archive step is untested against a real prior file.
+- The skills list in the current session shows both `rsd:walk-done` and `rsd:wd` — if the user ran from a different session/window, that one may need a restart to pick up 0.3.4.
+- README.md at the repo root still says "On first launch, Claude Code will clone snovis/rsd into its plugin cache and auto-load /rsd:handoff, /rsd:ho, /rsd:pickup, /rsd:pu" (in install.sh:77). That list pre-dates walk/next/walk-done. Worth updating once the actual triage settles, but it's documentation, not the defect.

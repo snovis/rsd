@@ -1,7 +1,7 @@
 # Handoff
 
 Written: {{timestamp}} · Context used: {{context_pct}}%
-Branch: {{branch}} · Last commit: {{commit_sha}}
+Branch: {{branch}} · Last commit: {{commit_sha}} · Slug: {{slug}}
 Durable facts: .rsd/FACTS.md ({{facts_count}} ground-truth entries, {{solved_count}} solved, {{dead_end_count}} dead ends) — read it before building anything not listed under "Next likely action".
 
 ## What we're working on

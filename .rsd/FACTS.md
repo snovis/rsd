@@ -30,6 +30,7 @@ Last updated: 2026-11-22 08:33
 - Commit message with punctuation/newlines blocked by the shell hook → Write the message to a scratchpad file, then `git commit -F <file>` (2026-11-22)
 - Cross-machine handoff clobbering → handoff and pickup fetch + compare behind/ahead before writing → `commands/handoff.md` step 3, `commands/pickup.md` step 2 (0.3.6)
 - Windows install → `install.ps1` (native PowerShell JSON, symlink with copy fallback), tested against a temp `CLAUDE_CONFIG_DIR` → repo root (2026-07-07)
+- Archives named after the *next* handoff (wrong file under each name) → step 5 names the archive from the old handoff's own `Written:` + `Slug:` header, and the three existing archives were renamed to match their contents → 0.4.1, `commands/handoff.md` step 5 (2026-11-22)
 - Facts and reasons decaying across handoffs → this file + "Decisions in force" carry-forward + pickup tripwire → 0.4.0, `templates/FACTS.md` (2026-11-22)
 
 ## Dead ends — tried, didn't work
@@ -37,6 +38,8 @@ Last updated: 2026-11-22 08:33
 - `git commit -m "..."` with a `;` in the text, or multiple `-m` / embedded newlines → shell hook rejects it. Use `-F` with a file. (2026-11-22)
 - Suggesting `claude --plugin-dir ~/dev/rsd` to test changes mid-session → requires a fresh launch, which wipes the session's context. Fine for a cold dev session only. (2026-11-22)
 - Requiring `jq` on Windows → rejected as an extra dependency; native `ConvertFrom-Json`/`ConvertTo-Json` instead. (2026-07-07)
+
+- Collapsing ho → clear → pu into one command → a skill can't run the built-in `/clear`. A SessionStart hook could auto-load after `/clear`, but Scott dropped it as not worth it. (2026-11-22)
 
 ## Retired
 

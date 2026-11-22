@@ -63,18 +63,21 @@ Write a handoff file that a fresh Claude session can read and resume from withou
 
 4. **Capture context %.** Note the current context-used percentage if it's known (e.g. from the statusline). If unavailable, leave it blank — don't block.
 
-5. **Read, then archive the previous handoff** (only if `<root>/.rsd/HANDOFF.md` exists). First Read it with the Read tool and keep its **Decisions in force** (older handoffs may call it **Recent decisions**) and **Open threads** in mind — step 8 carries them forward. Then get a timestamp with one command:
-   ```bash
-   date +"%Y-%m-%d-%H%M"
-   ```
-   Use the command argument as the slug if given; otherwise get an epoch fallback:
-   ```bash
-   date +%s
-   ```
-   Then move the old handoff aside, substituting the literal stamp and slug:
+5. **Read, then archive the previous handoff** (only if `<root>/.rsd/HANDOFF.md` exists). First Read it with the Read tool and keep its **Decisions in force** (older handoffs may call it **Recent decisions**) and **Open threads** in mind — step 8 carries them forward.
+
+   **Name the archive after the old handoff, not this session.** The archive holds the old handoff, so its name must describe the old one:
+   - **Stamp** — from the old handoff's `Written:` line, reformatted as `YYYY-MM-DD-HHmm` (e.g. `Written: 2026-07-07 18:21` → `2026-07-07-1821`). If it has only a date, use just the date (`2026-04-20`). If it's missing or unreadable, fall back to the current time from one command:
+     ```bash
+     date +"%Y-%m-%d-%H%M"
+     ```
+   - **Slug** — the old handoff's `Slug:` header value. Older handoffs have none: derive a 2–4 word kebab-case slug from its "What we're working on" (e.g. `windows-install-script`).
+
+   If `<root>/.rsd/handoffs/<stamp>-<slug>.md` already exists (check with Glob), append `-2` (then `-3`, …). Then move the old handoff aside, substituting the literal name:
    ```bash
    mv <root>/.rsd/HANDOFF.md <root>/.rsd/handoffs/<stamp>-<slug>.md
    ```
+
+   **Pick this handoff's slug** for the `Slug:` header (step 8) and the commit message (step 10): the command argument if one was given; otherwise a 2–4 word kebab-case summary of this session's focus. Never a timestamp or epoch number — the slug is for humans reading `git log` and the archive.
 
 6. **Check for active walk.** Use the Read tool on `<root>/.rsd/walks/ACTIVE`. If that file exists, its contents name the active walk file — Read `<root>/.rsd/walks/<name>` with the Read tool. Note:
    - Total items (`### ` headings under `## Items`)
@@ -96,6 +99,7 @@ Write a handoff file that a fresh Claude session can read and resume from withou
 
 8. **Synthesize the new handoff content** from the current session. Use the template at `@${CLAUDE_PLUGIN_ROOT}/templates/HANDOFF.md` as the shape. Fill in:
 
+   - **Slug** — this handoff's slug from step 5, in the header. The next handoff names this file's archive from it.
    - **Durable facts header line** — the counts from `.rsd/FACTS.md` (ground-truth entries, solved, dead ends).
    - **What we're working on** — 1-3 sentences on the current focus. Honest about scope. Plus a **Why:** line — the goal this serves, so the next agent can judge what's on-path.
    - **What just happened** — 3-5 bullets of *verified* outcomes only, each with what verified it. If you can't say what verified it, don't list it.
@@ -147,7 +151,7 @@ Write a handoff file that a fresh Claude session can read and resume from withou
    ```bash
    git diff --name-only --diff-filter=U
    ```
-   - **Only `.rsd/HANDOFF.md` conflicts** (the expected case when two machines both handed off): preserve the remote version first. Run `git show HEAD:.rsd/HANDOFF.md` (during a rebase, `HEAD` is the remote side) and use the Write tool to save its output to `<root>/.rsd/handoffs/<stamp>-<slug>-remote.md`. Then keep the handoff you just wrote and continue (each its own command):
+   - **Only `.rsd/HANDOFF.md` conflicts** (the expected case when two machines both handed off): preserve the remote version first. Run `git show HEAD:.rsd/HANDOFF.md` (during a rebase, `HEAD` is the remote side) and use the Write tool to save its output to `<root>/.rsd/handoffs/<stamp>-<slug>-remote.md`, with stamp and slug taken from *that remote handoff's* own `Written:` and `Slug:` lines, the same way as step 5. Then keep the handoff you just wrote and continue (each its own command):
      ```bash
      git checkout --theirs -- .rsd/HANDOFF.md
      ```
@@ -186,7 +190,7 @@ Write a handoff file that a fresh Claude session can read and resume from withou
 
 <success>
 - `.rsd/HANDOFF.md` exists with the agreed sections filled in (or explicit "none" markers).
-- Prior handoff read, then archived to `.rsd/handoffs/YYYY-MM-DD-HHmm-<slug>.md`; its still-valid decisions and open threads carried forward.
+- Prior handoff read, then archived to `.rsd/handoffs/YYYY-MM-DD-HHmm-<slug>.md`, named from its own `Written:` time and slug; its still-valid decisions and open threads carried forward.
 - `.rsd/FACTS.md` exists and holds everything durable this session learned (ground truth, solved, dead ends), each with a status and a reason.
 - Every decision in the handoff has a reason and, where one existed, the rejected alternative.
 - Remote checked (`git fetch` + behind/ahead) before anything was written; remote-only commits pulled or integrated, or the divergence reported. No force pushes.
