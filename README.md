@@ -67,13 +67,24 @@ Multi-machine safe: handoff fetches and compares with the remote **before** writ
 
 Shape:
 
-- **What we're working on** — 1-3 sentences of honest focus.
-- **What just happened** — 3-5 verified outcomes. Things that actually ran, rendered, or passed.
-- **What's open** — the specific unfinished thread, with reproduction steps and next likely action. Cold-start readable.
-- **Recent decisions** — provisional, dated, never locked.
-- **Open threads** — loose list of things noticed but deferred.
+- **What we're working on** — 1-3 sentences of honest focus, plus why it matters.
+- **What just happened** — 3-5 verified outcomes, each with what verified it.
+- **What's open** — the specific unfinished thread, with reproduction steps, next likely action, why it's next, and what's out of scope. Cold-start readable.
+- **Decisions in force** — provisional and dated, carried forward until superseded. Each one says what was chosen, why, and what was rejected and why.
+- **Open threads** — loose list of things noticed but deferred, carried forward until resolved.
 
 The file is written for a fresh Claude, not for you. You already know what happened.
+
+### The facts file
+
+`HANDOFF.md` is replaced every time, so anything that has to outlive a session goes in `.rsd/FACTS.md` instead. It's edited in place and never archived:
+
+- **Ground truth** — how things work here (where keys live and how to read them, how to deploy, what access the agent has), each tagged `[verified]`, `[inferred]`, or `[unknown]` with how we know.
+- **Solved — don't redo** — problem → solution → where it lives.
+- **Dead ends** — approaches tried and rejected, with why.
+- **Retired** — facts that turned out wrong, with what contradicted them. Nothing is silently deleted.
+
+Pickup reads it, and sets a tripwire for the session: before building anything off the "next likely action" path — especially scripts, credential handling, or tooling — the agent checks FACTS.md, and if the answer isn't there, asks you in one line instead of guessing.
 
 ## Principles
 
