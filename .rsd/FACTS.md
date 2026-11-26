@@ -11,7 +11,7 @@ Rules:
 - No secret VALUES here. Say where a secret lives and how to read it, never the secret itself.
 -->
 
-Last updated: 2026-11-22 08:33
+Last updated: 2026-11-25 17:45
 
 ## Ground truth
 
@@ -32,6 +32,7 @@ Last updated: 2026-11-22 08:33
 - Windows install → `install.ps1` (native PowerShell JSON, symlink with copy fallback), tested against a temp `CLAUDE_CONFIG_DIR` → repo root (2026-07-07)
 - Archives named after the *next* handoff (wrong file under each name) → step 5 names the archive from the old handoff's own `Written:` + `Slug:` header, and the three existing archives were renamed to match their contents → 0.4.1, `commands/handoff.md` step 5 (2026-11-22)
 - Facts and reasons decaying across handoffs → this file + "Decisions in force" carry-forward + pickup tripwire → 0.4.0, `templates/FACTS.md` (2026-11-22)
+- Two sessions in one project (Scott's Muse and Forge arrangement in agent-blaze) sharing one `HANDOFF.md`, so the second handoff replaced the first and pickup loaded whoever wrote last → roles: a project declares them in `.rsd/ROLES.md`, each gets `.rsd/HANDOFF-<role>.md`, `FACTS.md` stays shared, a `commits: no` role never changes git → 0.5.0, `commands/handoff.md` step 1b, `commands/pickup.md` step 1b, `templates/ROLES.md`, README "Roles" (2026-11-25)
 
 ## Dead ends — tried, didn't work
 
@@ -39,6 +40,7 @@ Last updated: 2026-11-22 08:33
 - Suggesting `claude --plugin-dir ~/dev/rsd` to test changes mid-session → requires a fresh launch, which wipes the session's context. Fine for a cold dev session only. (2026-11-22)
 - Requiring `jq` on Windows → rejected as an extra dependency; native `ConvertFrom-Json`/`ConvertTo-Json` instead. (2026-07-07)
 
+- Treating any bare word after `/rsd:handoff` as a role (`/rsd:ho forge`) → since 0.4.1 that word is the slug, so the two cannot be told apart. A word is a role only when `.rsd/ROLES.md` declares it; projects without that file are unchanged. (2026-11-25)
 - Collapsing ho → clear → pu into one command → a skill can't run the built-in `/clear`. A SessionStart hook could auto-load after `/clear`, but Scott dropped it as not worth it. (2026-11-22)
 
 ## Retired

@@ -1,7 +1,7 @@
 ---
 name: rsd:handoff
-description: Write a cold-start-ready handoff to .rsd/HANDOFF.md (plus durable facts in .rsd/FACTS.md), commit, and push. Non-blocking — you can keep working after.
-argument-hint: "[optional slug]"
+description: Write a cold-start-ready handoff to .rsd/HANDOFF.md (plus durable facts in .rsd/FACTS.md), commit, and push. In a project with roles (.rsd/ROLES.md), `/rsd:handoff <role>` writes that role's own handoff. Non-blocking — you can keep working after.
+argument-hint: "[role] [optional slug]"
 allowed-tools:
   - Read
   - Write
@@ -35,6 +35,21 @@ Write a handoff file that a fresh Claude session can read and resume from withou
    mkdir -p <root>/.rsd/handoffs
    ```
 
+1b. **Work out the role.** Some projects run more than one Claude session at once, each with its own job (for example a build session and a discussion session). One handoff file cannot hold two contexts, so each role gets its own.
+
+   Read `<root>/.rsd/ROLES.md` with the Read tool. **If it does not exist, this project has no roles:** the handoff file is `<root>/.rsd/HANDOFF.md`, the whole argument is the slug, and every step below works exactly as written. Skip the rest of this step.
+
+   If it exists, it declares the roles, one per line:
+   ```
+   - forge · commits: yes · the build session
+   - muse · commits: no · the discussion session
+   ```
+   Then:
+   - **Role** — the first word of the argument, lowercased, if it is one of the declared roles. Any words after it are the slug. If the first word is not a declared role, the whole argument is the slug and the role comes from the session: the role this session picked up as (`/rsd:pickup <role>`), or was told it is ("you are Forge"). If the session has no role either, write the plain `<root>/.rsd/HANDOFF.md` and say in the report that no role was given.
+   - **Handoff file** — `<root>/.rsd/HANDOFF-<role>.md`. Wherever a step below says "the handoff file", it means this file. Another role's handoff file is never archived, never overwritten, and never the source of this handoff's carry-forward. It may be read for information, and this handoff may point at it ("the filter design is in muse's handoff"). A handoff is one session's own context, not the channel between roles: what one role needs another to act on belongs in the project's shared files or in `FACTS.md`.
+   - **Commits** — a role declared `commits: no` never changes git. Its handoff writes files and stops: it does not pull (step 3), commit or push (step 10). A committing role's next commit carries its files.
+   - `<root>/.rsd/FACTS.md` is shared by every role. All roles read and edit the same file.
+
 2. **Capture git context.** Run each as its own command and note the output (treat empty output or an error as `(none)`):
    ```bash
    git branch --show-current
@@ -61,9 +76,15 @@ Write a handoff file that a fresh Claude session can read and resume from withou
      If it succeeds, note `pulled <behind> remote commits` for the report and proceed — the freshly pulled `HANDOFF.md` is the one step 5 will archive. If it fails (uncommitted local changes overlap the incoming ones), do NOT escalate to anything stronger; remember the flag **integrate-after-commit** and proceed.
    - **behind > 0, ahead > 0** — histories diverged. Remember **integrate-after-commit** and proceed. Local work gets committed first (step 10) so nothing can be lost, then integrated.
 
+   **A role declared `commits: no`** runs the fetch and the comparison, which change nothing, but never pulls. If behind > 0, note `remote is <behind> commits ahead, not pulled` for the report and proceed.
+
 4. **Capture context %.** Note the current context-used percentage if it's known (e.g. from the statusline). If unavailable, leave it blank — don't block.
 
-5. **Read, then archive the previous handoff** (only if `<root>/.rsd/HANDOFF.md` exists). First Read it with the Read tool and keep its **Decisions in force** (older handoffs may call it **Recent decisions**) and **Open threads** in mind — step 8 carries them forward.
+5. **Read, then archive the previous handoff** (only if the handoff file exists: `<root>/.rsd/HANDOFF.md`, or with a role `<root>/.rsd/HANDOFF-<role>.md`). First Read it with the Read tool and keep its **Decisions in force** (older handoffs may call it **Recent decisions**) and **Open threads** in mind — step 8 carries them forward.
+
+   **A role's first handoff in a project that already has a plain `HANDOFF.md`.** The role's own file does not exist yet, but the plain one does: it is the handoff from before the project had roles. Read it.
+   - **If this role wrote it** (it has a `Role:` line or a sentence naming this role, or this session wrote it or picked up from it): it is this role's previous handoff. Carry forward what still holds and archive it as below, under this role's name.
+   - **If another role wrote it, or you cannot tell:** leave it exactly where it is. That role archives it at its own first handoff. Carry forward only its **Decisions in force** that still hold, since a decision binds the whole project; its "What's open" and open threads are that other session's work, not yours.
 
    **Name the archive after the old handoff, not this session.** The archive holds the old handoff, so its name must describe the old one:
    - **Stamp** — from the old handoff's `Written:` line, reformatted as `YYYY-MM-DD-HHmm` (e.g. `Written: 2026-07-07 18:21` → `2026-07-07-1821`). If it has only a date, use just the date (`2026-04-20`). If it's missing or unreadable, fall back to the current time from one command:
@@ -72,12 +93,18 @@ Write a handoff file that a fresh Claude session can read and resume from withou
      ```
    - **Slug** — the old handoff's `Slug:` header value. Older handoffs have none: derive a 2–4 word kebab-case slug from its "What we're working on" (e.g. `windows-install-script`).
 
-   If `<root>/.rsd/handoffs/<stamp>-<slug>.md` already exists (check with Glob), append `-2` (then `-3`, …). Then move the old handoff aside, substituting the literal name:
+   - **Role** — with a role, the archive name carries it between the stamp and the slug: `<stamp>-<role>-<slug>.md` (e.g. `2026-11-25-1710-forge-question-cards.md`), so one role's history can be listed with `.rsd/handoffs/*-<role>-*`. Without a role, the name is `<stamp>-<slug>.md` as before.
+
+   If the archive name already exists in `<root>/.rsd/handoffs/` (check with Glob), append `-2` (then `-3`, …). Then move the old handoff aside, substituting the literal names (the file being archived, then its archive name):
    ```bash
    mv <root>/.rsd/HANDOFF.md <root>/.rsd/handoffs/<stamp>-<slug>.md
    ```
+   ```bash
+   mv <root>/.rsd/HANDOFF-<role>.md <root>/.rsd/handoffs/<stamp>-<role>-<slug>.md
+   ```
+   Run only the one that applies. This `mv` is a file move, not a git command, so a `commits: no` role runs it too.
 
-   **Pick this handoff's slug** for the `Slug:` header (step 8) and the commit message (step 10): the command argument if one was given; otherwise a 2–4 word kebab-case summary of this session's focus. Never a timestamp or epoch number — the slug is for humans reading `git log` and the archive.
+   **Pick this handoff's slug** for the `Slug:` header (step 8) and the commit message (step 10): the command argument if one was given (with a role, the words after the role); otherwise a 2–4 word kebab-case summary of this session's focus. Never a timestamp or epoch number, and never just the role's name — the slug is for humans reading `git log` and the archive.
 
 6. **Check for active walk.** Use the Read tool on `<root>/.rsd/walks/ACTIVE`. If that file exists, its contents name the active walk file — Read `<root>/.rsd/walks/<name>` with the Read tool. Note:
    - Total items (`### ` headings under `## Items`)
@@ -100,6 +127,7 @@ Write a handoff file that a fresh Claude session can read and resume from withou
 8. **Synthesize the new handoff content** from the current session. Use the template at `@${CLAUDE_PLUGIN_ROOT}/templates/HANDOFF.md` as the shape. Fill in:
 
    - **Slug** — this handoff's slug from step 5, in the header. The next handoff names this file's archive from it.
+   - **Role** — with a role, a `Role: <role>` entry in the header, and one sentence at the top of "What we're working on" saying which session this is and which other roles work this project. Without a role, leave the `Role:` entry out.
    - **Durable facts header line** — the counts from `.rsd/FACTS.md` (ground-truth entries, solved, dead ends).
    - **What we're working on** — 1-3 sentences on the current focus. Honest about scope. Plus a **Why:** line — the goal this serves, so the next agent can judge what's on-path.
    - **What just happened** — 3-5 bullets of *verified* outcomes only, each with what verified it. If you can't say what verified it, don't list it.
@@ -116,14 +144,19 @@ Write a handoff file that a fresh Claude session can read and resume from withou
    - **Decisions in force** — every decision from the previous handoff that still holds, plus this session's. Format: `date · chose X · because Y · rejected Z because W`. Drop an old one only when a newer decision replaces it, and say so in the new one. If an old entry has no reason recorded, keep it and mark the reason `(not recorded)` — don't invent one. If a decision is really a durable fact (e.g. "keys come from the vault"), put it in `.rsd/FACTS.md` instead.
    - **Open threads** — carried forward from the previous handoff plus new ones. Drop a thread only if it was resolved (and say where, in "What just happened") or moved into the current focus.
 
-9. **Write `<root>/.rsd/HANDOFF.md`.** Use the Write tool.
+9. **Write the handoff file.** `<root>/.rsd/HANDOFF.md`, or with a role `<root>/.rsd/HANDOFF-<role>.md`. Use the Write tool. Never write another role's file.
 
-10. **Commit and push** (single atomic commit). A handoff is a full save point, so sweep in everything — not just `.rsd/`. Whatever's in the working tree is state you might want when you resume. Stage, then commit (each its own command; substitute the literal slug):
+10. **Commit and push** (single atomic commit). **A role declared `commits: no` skips this whole step** and goes to step 11: its files stay in the working tree for a committing role's next commit.
+
+   A handoff is a full save point, so sweep in everything — not just `.rsd/`. Whatever's in the working tree is state you might want when you resume. In a project with roles that includes the other sessions' files, and their handoff files: committing them is how a `commits: no` role's work gets saved. Stage, then commit (each its own command; substitute the literal slug, and with a role use the second form):
    ```bash
    git add -A
    ```
    ```bash
    git commit -m "handoff: <slug>" --no-verify
+   ```
+   ```bash
+   git commit -m "handoff(<role>): <slug>" --no-verify
    ```
 
    **Handle reformatter residue.** Pre-commit and editor-triggered formatters (prettier, black, etc.) often rewrite files during or just after `git add` / `git commit` without re-staging. `--no-verify` doesn't always stop this. After the commit, check the tree:
@@ -151,7 +184,7 @@ Write a handoff file that a fresh Claude session can read and resume from withou
    ```bash
    git diff --name-only --diff-filter=U
    ```
-   - **Only `.rsd/HANDOFF.md` conflicts** (the expected case when two machines both handed off): preserve the remote version first. Run `git show HEAD:.rsd/HANDOFF.md` (during a rebase, `HEAD` is the remote side) and use the Write tool to save its output to `<root>/.rsd/handoffs/<stamp>-<slug>-remote.md`, with stamp and slug taken from *that remote handoff's* own `Written:` and `Slug:` lines, the same way as step 5. Then keep the handoff you just wrote and continue (each its own command):
+   - **Only the handoff file conflicts** (`.rsd/HANDOFF.md`, or with a role `.rsd/HANDOFF-<role>.md`; the expected case when two machines both handed off): preserve the remote version first. Run `git show HEAD:.rsd/HANDOFF.md` (during a rebase, `HEAD` is the remote side; with a role, name the role's file) and use the Write tool to save its output to `<root>/.rsd/handoffs/<stamp>-<slug>-remote.md` (with a role, `<stamp>-<role>-<slug>-remote.md`), with stamp and slug taken from *that remote handoff's* own `Written:` and `Slug:` lines, the same way as step 5. Then keep the handoff you just wrote and continue (each its own command; with a role, name the role's file in the first one):
      ```bash
      git checkout --theirs -- .rsd/HANDOFF.md
      ```
@@ -175,6 +208,8 @@ Write a handoff file that a fresh Claude session can read and resume from withou
 
 11. **Report briefly** — one line. If only `.rsd/` was touched: `Handoff written (43 lines, facts +2, committed ${COMMIT}). Keep working or /clear → /rsd:pickup.` If the commit also swept in N other files: `Handoff written (43 lines, facts +2) + 4 other files swept into commit ${COMMIT}. Working tree clean. Keep working or /clear → /rsd:pickup.` Use `facts +N` for entries added/changed in `.rsd/FACTS.md`, `facts: no change` if none, or `facts: created` the first time. If remote commits were pulled or integrated, append it: `…(pulled 2 remote commits first)`. If the post-commit `git status --porcelain` is non-empty, flag it: `Handoff committed ${COMMIT}, but working tree not fully clean — <paths>. Investigate before /clear.` If integration was aborted on conflicts, make that the headline: `Handoff committed ${COMMIT} locally, but NOT pushed — remote has diverged with conflicts in <paths>. Reconcile (git pull --rebase, resolve, git push) before switching machines.`
 
+    **With a role**, name it and its file, and end with the role's own pickup: `Forge's handoff written to .rsd/HANDOFF-forge.md (61 lines, facts +2, committed ${COMMIT}). Keep working or /clear → /rsd:pickup forge.` When the commit swept in another role's files, name that role, because this commit is what saved its work: `Forge's handoff written to .rsd/HANDOFF-forge.md (61 lines, facts +2) + 3 other files swept into commit ${COMMIT}, 2 of them muse's (her handoff included). Working tree clean. Keep working or /clear → /rsd:pickup forge.` For a `commits: no` role, say plainly that nothing was committed and who will: `Muse's handoff written to .rsd/HANDOFF-muse.md (48 lines, facts +1). Not committed: muse never runs git, so it is saved in git by the next commit from forge. Keep working or /clear → /rsd:pickup muse.` If the project has roles and none could be worked out, say so: `Handoff written to .rsd/HANDOFF.md with no role (this project has roles: forge, muse). Run /rsd:handoff <role> to write a role's own.`
+
 </process>
 
 <guardrails>
@@ -186,6 +221,8 @@ Write a handoff file that a fresh Claude session can read and resume from withou
 - **Never block on push failures.** If `git push` fails (no remote, auth, network), commit still stands; note it in the one-line report.
 - **Never clobber the remote.** Fetch and compare before writing; integrate remote commits before pushing. Never force-push, never resolve non-handoff conflicts by guessing — abort, keep the local commit, and tell the user.
 - **Don't re-explain context to the user.** They already know what happened — this file is for future-Claude, not for them.
+- **Never take over another role's handoff.** With roles, archive and write only `HANDOFF-<role>.md` for this session's own role, and carry forward only from it. Another role's file is another session's context, even when it looks stale: read it if you need to know something, never move or rewrite it.
+- **A `commits: no` role never changes git.** No pull, no add, no commit, no push, no rebase. Fetching and comparing are allowed because they change nothing.
 </guardrails>
 
 <success>
@@ -198,4 +235,5 @@ Write a handoff file that a fresh Claude session can read and resume from withou
 - Working tree is clean after the commit (nothing reported by `git status`).
 - Push attempted (best-effort).
 - One-line report to user. No further interaction required.
+- In a project with `.rsd/ROLES.md`: the role's own `.rsd/HANDOFF-<role>.md` written with a `Role:` header, only that role's previous handoff archived (as `<stamp>-<role>-<slug>.md`), no other role's file touched, and for a `commits: no` role nothing committed, with the report saying so.
 </success>

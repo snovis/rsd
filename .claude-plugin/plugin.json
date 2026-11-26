@@ -1,6 +1,6 @@
 {
   "name": "rsd",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "Cold-start-ready handoffs for Claude Code sessions. Call /rsd:handoff anytime, /clear, then /rsd:pickup to resume.",
   "author": {
     "name": "Scott Novis",

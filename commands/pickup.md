@@ -1,7 +1,7 @@
 ---
 name: rsd:pickup
-description: Read the latest handoff and brief the current session on where we are. Use after /clear, on resume, or any time you've forgotten what we were doing.
-argument-hint: ""
+description: Read the latest handoff and brief the current session on where we are. In a project with roles (.rsd/ROLES.md), `/rsd:pickup <role>` reads that role's own handoff. Use after /clear, on resume, or any time you've forgotten what we were doing.
+argument-hint: "[role]"
 allowed-tools:
   - Read
   - Bash
@@ -28,7 +28,18 @@ Resume cleanly from the last handoff. Read `.rsd/HANDOFF.md`, surface the key po
    ```
    The handoff lives at `<root>/.rsd/HANDOFF.md` — use the returned path as an absolute prefix for every file operation below. If that command errors (not a git repo), fall back to `.rsd/HANDOFF.md` in the current working directory.
 
-   If no handoff file exists, ask the user once: "I don't see a `.rsd/HANDOFF.md` at the project root. Are we in a new project, or should I look somewhere else?" Wait for a response; don't guess.
+   If `<root>/.rsd/HANDOFF.md` does not exist, do step 1b before concluding anything: the project may keep one handoff per role instead. Only if step 1b finds no role handoffs either, ask the user once: "I don't see a `.rsd/HANDOFF.md` at the project root. Are we in a new project, or should I look somewhere else?" Wait for a response; don't guess.
+
+1b. **Work out which handoff is this session's.** Some projects run more than one Claude session at once, each with its own role and its own handoff file, `<root>/.rsd/HANDOFF-<role>.md`. Read `<root>/.rsd/ROLES.md` with the Read tool. It declares the roles, one per line (`- forge · commits: yes · the build session`).
+
+   - **No `ROLES.md`, and no argument:** the project has no roles. The handoff is `<root>/.rsd/HANDOFF.md`, and everything below works as written. Skip the rest of this step.
+   - **An argument was given:** the role is its first word, lowercased.
+     - If `<root>/.rsd/HANDOFF-<role>.md` exists, that is the handoff. Every later step reads it in place of `HANDOFF.md`.
+     - If it does not exist but the role is declared and a plain `<root>/.rsd/HANDOFF.md` does: the role has not handed off yet. Read the plain one and open the brief with `No handoff for <role> yet, so this is the project's shared handoff from before roles.`
+     - Otherwise there is nothing by that name. Do not fall back in silence: list the handoff files that do exist (Glob `<root>/.rsd/HANDOFF*.md`) and the roles `ROLES.md` declares, and ask the user once which one they meant.
+   - **Roles exist and no argument was given:** if this session already knows its role (it was told "you are Forge", or it picked up as a role earlier), use that role. If it does not, never guess: list each role's handoff with its `Written:` time and ask once, `This project has role handoffs: forge (written 10 minutes ago), muse (written 2 hours ago). Which role is this session?`
+
+   Once the role is known, **this session is that role until told otherwise.** A later `/rsd:handoff` with no role writes this role's handoff. Note the role's `commits:` setting from `ROLES.md` for step 2.
 
 2. **Check the remote for a newer handoff.** The user may have handed off from another machine and forgotten to pull. Run:
    ```bash
@@ -48,6 +59,7 @@ Resume cleanly from the last handoff. Read `.rsd/HANDOFF.md`, surface the key po
      ```
      If it succeeds, note `pulled <behind> commits from remote` for the brief. If it fails (diverged), don't force anything — read the local handoff and flag the divergence in the brief.
    - **Dirty tree:** don't pull over uncommitted work. Read the local handoff and lead the brief with a warning: `⚠ Remote is <behind> commits ahead (likely a handoff from another machine) but this tree has uncommitted changes — reconcile before trusting this brief.`
+   - **A role declared `commits: no`** never pulls, clean tree or not: it does not change git. If behind > 0, read the local handoff and lead the brief with: `⚠ Remote is <behind> commits ahead and <role> does not pull. Have the committing session pull (or run git pull yourself) before trusting this brief.`
 
 3. **Read the handoff and the facts file with the Read tool.** The whole handoff; it should be short. Then Read `<root>/.rsd/FACTS.md` if it exists — the whole file. It holds the durable ground truth (where keys live, how to deploy, what access you already have), what's already solved, and the dead ends. Keep it in mind for the rest of the session; the tripwire below depends on it. If it doesn't exist, note `no FACTS.md yet` for the brief.
 
@@ -81,6 +93,16 @@ Resume cleanly from the last handoff. Read `.rsd/HANDOFF.md`, surface the key po
    Ready when you are.
    ```
 
+   **With a role**, the first line names it and its file, and one line before "Ready when you are." names the other roles so the session knows they exist:
+
+   ```
+   Picked up forge's handoff, .rsd/HANDOFF-forge.md (written <age>, context was at <pct>%).
+   ...
+   Other roles here: muse (handoff written <age>). Their handoffs are theirs; I have not read them.
+   ```
+
+   If another role has no handoff file yet, say `muse (no handoff yet)`. Get each age from the `Written:` line near the top of that role's file (Read with a limit of a few lines) and read no further: another role's handoff is another session's context.
+
    Keep it under ~15 lines. Don't recap everything — the handoff file is still on disk if the user wants the rest. If the handoff's "What's open" already contained walk context (pointer + discussion summary), don't repeat it verbatim; the one-line "Active walk:" suffices and the rest is in the handoff.
 
 7. **Stop.** Do not proceed to the next work until the user tells you to.
@@ -104,6 +126,7 @@ A one-line question costs seconds. A sophisticated blind alley costs hours and i
 - **Never merge prior context.** Your job is to load the handoff, not combine it with earlier chatter.
 - **Stale handoffs deserve a flag.** If age > 24 hours, note it explicitly — the user may have forgotten context.
 - **Never treat a gap as permission to invent.** A decision with `(not recorded)` as its reason, or an `[inferred]`/`[unknown]` fact, is a question for the user, not a premise to build on.
+- **Never pick up another role's handoff as your own.** With roles, load only the handoff of the role this session is. If the role is not known, ask; a wrong guess hands one session the other's job.
 </guardrails>
 
 <success>
@@ -113,4 +136,5 @@ A one-line question costs seconds. A sophisticated blind alley costs hours and i
 - User briefed in a short message covering focus, last verified, open thread, and next likely action.
 - Age and decision/thread counts disclosed.
 - Session waits for user input. No autonomous continuation.
+- In a project with `.rsd/ROLES.md`: the role's own `.rsd/HANDOFF-<role>.md` read (or the fallback said out loud), the brief names the role and the other roles, and a `commits: no` role pulled nothing.
 </success>

@@ -14,6 +14,7 @@ The minimum useful set. Handoffs only. No planner, no executor, no phase concept
 
 - **`/rsd:handoff`** (shortcut `/rsd:ho`) — write `.rsd/HANDOFF.md`, archive the previous one, commit, push. Non-blocking: call any time, keep working after.
 - **`/rsd:pickup`** (shortcut `/rsd:pu`) — read the handoff and brief the current session. Use after `/clear`, on resume, or any time you've forgotten what you were doing.
+- **Roles** — two sessions in one project each get their own handoff: `/rsd:handoff forge`, `/rsd:pickup muse`. See "Roles" below.
 - **Statusline** — host · model · current task · directory (branch) · handoff freshness · context bar. Gracefully degrades in projects without `.rsd/`.
 - **Context monitor** — proactive nudge around 45/60/75% ("consider `/rsd:handoff`") so you don't hit auto-compact by surprise.
 
@@ -85,6 +86,32 @@ The file is written for a fresh Claude, not for you. You already know what happe
 - **Retired** — facts that turned out wrong, with what contradicted them. Nothing is silently deleted.
 
 Pickup reads it, and sets a tripwire for the session: before building anything off the "next likely action" path — especially scripts, credential handling, or tooling — the agent checks FACTS.md, and if the answer isn't there, asks you in one line instead of guessing.
+
+### Roles: more than one session in a project
+
+One handoff file holds one context. If you run two Claude sessions in the same project at once, each with its own job (say a build session and a discussion session), declare the roles in `.rsd/ROLES.md` (template: `templates/ROLES.md`):
+
+```
+- forge · commits: yes · the build session
+- muse · commits: no · the discussion session
+```
+
+Then each session hands off and picks up by its own name:
+
+```
+/rsd:handoff forge      # writes .rsd/HANDOFF-forge.md, archives only forge's previous one
+/rsd:pickup forge       # reads .rsd/HANDOFF-forge.md
+/rsd:handoff muse
+/rsd:pickup muse
+```
+
+- Each role has its own `.rsd/HANDOFF-<role>.md`. A role never reads, archives or overwrites another role's file.
+- `.rsd/FACTS.md` is shared: what is true about the project is true for every session.
+- A role marked `commits: no` never changes git. Its handoff only writes files, and a committing role's next commit saves them.
+- Archives carry the role: `.rsd/handoffs/YYYY-MM-DD-HHmm-<role>-<slug>.md`. Commits read `handoff(<role>): <slug>`.
+- A word after the role is the slug: `/rsd:handoff forge question-cards`.
+- `/rsd:pickup` with no role, in a project that has roles, asks which role the session is. It never guesses.
+- A project with no `ROLES.md` works exactly as before: one `.rsd/HANDOFF.md`, and the argument to `/rsd:handoff` is the slug.
 
 ## Principles
 

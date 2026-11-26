@@ -1,7 +1,7 @@
 ---
 name: rsd:ho
 description: Shortcut for /rsd:handoff. Write handoff, commit, push. Non-blocking.
-argument-hint: "[optional slug]"
+argument-hint: "[role] [optional slug]"
 allowed-tools:
   - Read
   - Write
